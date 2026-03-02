@@ -147,3 +147,32 @@ if st.button("✨ 행사 기획안 생성"):
             st.warning("🔒 프리미엄 기능입니다.")
             preview = premium_result[:500]
             st.info(preview + "...\n\n(전체 내용은 프리미엄에서 확인 가능합니다)")
+st.divider()
+
+st.markdown("## 🤝 Minister AI 사역 후원")
+
+st.markdown("""
+이 플랫폼은 사역자를 돕기 위해 운영됩니다.  
+프리미엄 기능 사용 및 자발적 후원은  
+다시 사역 지원과 콘텐츠 개발에 사용됩니다.
+""")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.markdown("### 💎 프리미엄 이용 안내")
+    st.markdown("""
+    - 행사 기획안 전체 보기  
+    - PDF 다운로드  
+    - 향후 고급 매칭 리포트 제공  
+    """)
+
+with col2:
+    st.markdown("### 💰 후원하기")
+
+    st.link_button(
+        "🙏 후원하기 (토스 결제)",
+        "https://your-payment-link.com"
+    )
+
+st.caption("※ 수익은 사역자 지원 및 플랫폼 운영에 사용됩니다.")
