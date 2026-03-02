@@ -1,17 +1,9 @@
 import streamlit as st
 import pandas as pd
 from openai import OpenAI
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
-from reportlab.lib import colors
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.pdfbase import pdfmetrics
-from reportlab.lib.pagesizes import A4
-import tempfile
-import os
 
 # ==============================
-# 🔐 OpenAI API 설정
+# 🔐 OpenAI 설정
 # ==============================
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
@@ -21,8 +13,54 @@ st.set_page_config(
     layout="wide",
 )
 
+# ==============================
+# 🧠 세션 초기화
+# ==============================
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+if "user_email" not in st.session_state:
+    st.session_state.user_email = ""
+if "is_premium" not in st.session_state:
+    st.session_state.is_premium = False
+
+# ==============================
+# 🌟 타이틀
+# ==============================
 st.title("🙏 Minister AI 4.0")
-st.subheader("교회 행사 강사 추천 & 기획 플랫폼")
+st.caption("교회 행사 강사 추천 & 기획 플랫폼")
+
+st.divider()
+
+# ==============================
+# 🔐 로그인 영역
+# ==============================
+if not st.session_state.logged_in:
+
+    st.subheader("🔐 로그인")
+
+    email = st.text_input("이메일 입력")
+
+    if st.button("로그인"):
+        if email.strip() == "":
+            st.warning("이메일을 입력해주세요.")
+        else:
+            st.session_state.logged_in = True
+            st.session_state.user_email = email
+
+            # 프리미엄 조건 (임시)
+            if email.endswith("@minister.ai"):
+                st.session_state.is_premium = True
+
+            st.success("로그인 성공!")
+            st.rerun()
+
+else:
+    st.success(f"로그인됨: {st.session_state.user_email}")
+
+    if st.button("로그아웃"):
+        st.session_state.logged_in = False
+        st.session_state.is_premium = False
+        st.rerun()
 
 st.divider()
 
@@ -32,147 +70,87 @@ st.divider()
 df = pd.read_csv("minister_DB.csv")
 
 # ==============================
-# 📝 사용자 입력
+# 📝 행사 입력
 # ==============================
-st.markdown("### 📌 행사 내용을 입력하세요")
-user_input = st.text_area("행사 내용", height=120)
+user_input = st.text_area("행사 내용 입력", height=120)
 
 # ==============================
 # 🔎 기본 추천
 # ==============================
-if st.button("🔎 AI 강사 추천"):
-    if user_input.strip() == "":
-        st.warning("행사 내용을 입력해주세요.")
-    else:
-        with st.spinner("분석 중..."):
-            prompt = f"""
-            교회 행사 내용: {user_input}
+if st.session_state.logged_in:
 
-            아래 강사 목록 중 가장 적합한 3명을 추천하고
-            추천 이유를 설명하세요.
+    if st.button("🔎 AI 강사 추천"):
+        if user_input.strip() == "":
+            st.warning("행사 내용을 입력해주세요.")
+        else:
+            with st.spinner("분석 중..."):
 
-            {df.to_string(index=False)}
-            """
+                prompt = f"""
+                교회 행사 내용: {user_input}
 
-            response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": "교회 행사 강사 매칭 전문가"},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.7
-            )
+                아래 강사 목록 중 가장 적합한 3명을 추천하고
+                이유를 설명하세요.
 
-            result = response.choices[0].message.content
+                {df.to_string(index=False)}
+                """
 
-        st.info(result)
-
-st.divider()
-
-# ==============================
-# 💎 프리미엄 기능
-# ==============================
-st.markdown("## 💎 행사 기획안 자동 생성 (프리미엄)")
-
-premium_code = st.text_input("프리미엄 코드 입력", type="password")
-
-if st.button("✨ 행사 기획안 생성"):
-
-    if user_input.strip() == "":
-        st.warning("행사 내용을 먼저 입력해주세요.")
-    else:
-        with st.spinner("기획안 작성 중..."):
-
-            premium_prompt = f"""
-            교회 행사 내용: {user_input}
-
-            아래 형식으로 작성:
-            1. 행사 주제
-            2. 전체 흐름
-            3. 설교 방향
-            4. 찬양 구성
-            5. 홍보 문구
-            6. 기대 효과
-            """
-
-            response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": "교회 행사 기획 전문가"},
-                    {"role": "user", "content": premium_prompt}
-                ],
-                temperature=0.8
-            )
-
-            premium_result = response.choices[0].message.content
-
-        if premium_code == "MINISTER2026":
-
-            st.success("✅ 프리미엄 인증 완료")
-            st.markdown("### ✨ 전체 기획안")
-            st.success(premium_result)
-
-            # ==============================
-            # 📄 PDF 생성
-            # ==============================
-            pdf_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
-            doc = SimpleDocTemplate(pdf_file.name, pagesize=A4)
-
-            styles = getSampleStyleSheet()
-            custom_style = ParagraphStyle(
-                name='Custom',
-                parent=styles['Normal'],
-                fontSize=12,
-                leading=18,
-            )
-
-            story = []
-            for line in premium_result.split("\n"):
-                story.append(Paragraph(line, custom_style))
-                story.append(Spacer(1, 8))
-
-            doc.build(story)
-
-            with open(pdf_file.name, "rb") as f:
-                st.download_button(
-                    label="📥 PDF 다운로드",
-                    data=f,
-                    file_name="Minister_AI_기획안.pdf",
-                    mime="application/pdf"
+                response = client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {"role": "system", "content": "교회 행사 강사 매칭 전문가"},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.7
                 )
 
-            os.unlink(pdf_file.name)
+                result = response.choices[0].message.content
 
+            st.info(result)
+
+    st.divider()
+
+    # ==============================
+    # 💎 프리미엄 기능
+    # ==============================
+    st.subheader("💎 행사 기획안 자동 생성")
+
+    if st.button("✨ 기획안 생성"):
+
+        if user_input.strip() == "":
+            st.warning("행사 내용을 입력해주세요.")
         else:
-            st.warning("🔒 프리미엄 기능입니다.")
-            preview = premium_result[:500]
-            st.info(preview + "...\n\n(전체 내용은 프리미엄에서 확인 가능합니다)")
-st.divider()
+            with st.spinner("기획안 작성 중..."):
 
-st.markdown("## 🤝 Minister AI 사역 후원")
+                premium_prompt = f"""
+                교회 행사 내용: {user_input}
 
-st.markdown("""
-이 플랫폼은 사역자를 돕기 위해 운영됩니다.  
-프리미엄 기능 사용 및 자발적 후원은  
-다시 사역 지원과 콘텐츠 개발에 사용됩니다.
-""")
+                아래 형식으로 작성:
+                1. 행사 주제
+                2. 전체 흐름
+                3. 설교 방향
+                4. 찬양 구성
+                5. 홍보 문구
+                6. 기대 효과
+                """
 
-col1, col2 = st.columns(2)
+                response = client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {"role": "system", "content": "교회 행사 기획 전문가"},
+                        {"role": "user", "content": premium_prompt}
+                    ],
+                    temperature=0.8
+                )
 
-with col1:
-    st.markdown("### 💎 프리미엄 이용 안내")
-    st.markdown("""
-    - 행사 기획안 전체 보기  
-    - PDF 다운로드  
-    - 향후 고급 매칭 리포트 제공  
-    """)
+                premium_result = response.choices[0].message.content
 
-with col2:
-    st.markdown("### 💰 후원하기")
+            if st.session_state.is_premium:
+                st.success("프리미엄 사용자")
+                st.success(premium_result)
+            else:
+                st.warning("🔒 프리미엄 전용 기능입니다.")
+                preview = premium_result[:500]
+                st.info(preview + "\n\n(전체 기능은 프리미엄 사용자에게 제공됩니다)")
 
-    st.link_button(
-        "🙏 후원하기 (토스 결제)",
-        "https://your-payment-link.com"
-    )
-
-st.caption("※ 수익은 사역자 지원 및 플랫폼 운영에 사용됩니다.")
+else:
+    st.info("로그인 후 사용 가능합니다.")
