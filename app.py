@@ -1,46 +1,26 @@
 import streamlit as st
 import pandas as pd
 from openai import OpenAI
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib import colors
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfbase import pdfmetrics
+from reportlab.lib.pagesizes import A4
+import tempfile
+import os
 
 # ==============================
 # 🔐 OpenAI API 설정
 # ==============================
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-# ==============================
-# 🎨 페이지 설정
-# ==============================
 st.set_page_config(
     page_title="Minister AI 4.0",
     page_icon="🙏",
     layout="wide",
 )
 
-# ==============================
-# 🎨 스타일
-# ==============================
-st.markdown("""
-<style>
-.stButton>button {
-    background-color: #1E3A5F;
-    color: white;
-    border-radius: 10px;
-    padding: 10px 20px;
-}
-.stButton>button:hover {
-    background-color: #D4AF37;
-    color: black;
-}
-div.stTextArea textarea {
-    background-color: #1C2A3A;
-    color: white;
-}
-</style>
-""", unsafe_allow_html=True)
-
-# ==============================
-# 🌟 타이틀
-# ==============================
 st.title("🙏 Minister AI 4.0")
 st.subheader("교회 행사 강사 추천 & 기획 플랫폼")
 
@@ -61,7 +41,6 @@ user_input = st.text_area("행사 내용", height=120)
 # 🔎 기본 추천
 # ==============================
 if st.button("🔎 AI 강사 추천"):
-
     if user_input.strip() == "":
         st.warning("행사 내용을 입력해주세요.")
     else:
@@ -86,7 +65,6 @@ if st.button("🔎 AI 강사 추천"):
 
             result = response.choices[0].message.content
 
-        st.markdown("### 📊 추천 결과")
         st.info(result)
 
 st.divider()
@@ -96,7 +74,7 @@ st.divider()
 # ==============================
 st.markdown("## 💎 행사 기획안 자동 생성 (프리미엄)")
 
-premium_code = st.text_input("프리미엄 코드 입력 (체험 가능)", type="password")
+premium_code = st.text_input("프리미엄 코드 입력", type="password")
 
 if st.button("✨ 행사 기획안 생성"):
 
@@ -128,13 +106,44 @@ if st.button("✨ 행사 기획안 생성"):
 
             premium_result = response.choices[0].message.content
 
-        # 🔐 잠금 구조
         if premium_code == "MINISTER2026":
+
             st.success("✅ 프리미엄 인증 완료")
             st.markdown("### ✨ 전체 기획안")
             st.success(premium_result)
+
+            # ==============================
+            # 📄 PDF 생성
+            # ==============================
+            pdf_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+            doc = SimpleDocTemplate(pdf_file.name, pagesize=A4)
+
+            styles = getSampleStyleSheet()
+            custom_style = ParagraphStyle(
+                name='Custom',
+                parent=styles['Normal'],
+                fontSize=12,
+                leading=18,
+            )
+
+            story = []
+            for line in premium_result.split("\n"):
+                story.append(Paragraph(line, custom_style))
+                story.append(Spacer(1, 8))
+
+            doc.build(story)
+
+            with open(pdf_file.name, "rb") as f:
+                st.download_button(
+                    label="📥 PDF 다운로드",
+                    data=f,
+                    file_name="Minister_AI_기획안.pdf",
+                    mime="application/pdf"
+                )
+
+            os.unlink(pdf_file.name)
+
         else:
             st.warning("🔒 프리미엄 기능입니다.")
-            st.markdown("### ✨ 기획안 미리보기")
             preview = premium_result[:500]
             st.info(preview + "...\n\n(전체 내용은 프리미엄에서 확인 가능합니다)")
