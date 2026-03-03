@@ -1,4 +1,22 @@
 import streamlit as st
+
+st.set_page_config(
+    page_title="Minister AI",
+    page_icon="🌿",
+    layout="wide",
+    initial_sidebar_state="collapsed"  # 🔥 사이드바 기본 숨김
+)
+
+# 기본 Streamlit 메뉴 숨김
+hide_streamlit_style = """
+<style>
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+header {visibility: hidden;}
+</style>
+"""
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+import streamlit as st
 import pandas as pd
 from openai import OpenAI
 from datetime import datetime
@@ -145,6 +163,7 @@ if st.session_state.logged_in:
 
 else:
     st.info("로그인 후 사용 가능합니다.")
+
 
 
 
