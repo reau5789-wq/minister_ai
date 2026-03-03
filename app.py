@@ -1,3 +1,4 @@
+st.image("logo.png", width=200)
 import streamlit as st
 import pandas as pd
 from openai import OpenAI
@@ -146,3 +147,4 @@ if st.session_state.logged_in:
 
 else:
     st.info("로그인 후 사용 가능합니다.")
+
