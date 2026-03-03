@@ -1,4 +1,3 @@
-st.image("logo.png", width=200)
 import streamlit as st
 import pandas as pd
 from openai import OpenAI
@@ -39,7 +38,7 @@ def save_log(email, event_text, feature_type):
         updated = new_data
 
     updated.to_csv(log_file, index=False)
-
+st.image("logo.png", width=200)
 # ==============================
 # 로그인
 # ==============================
@@ -147,4 +146,5 @@ if st.session_state.logged_in:
 
 else:
     st.info("로그인 후 사용 가능합니다.")
+
 
