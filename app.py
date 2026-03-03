@@ -1,9 +1,10 @@
 import streamlit as st
+import pandas as pd
 from openai import OpenAI
 
-# ----------------------------
+# -------------------------------------------------
 # 기본 설정
-# ----------------------------
+# -------------------------------------------------
 st.set_page_config(
     page_title="Minister AI",
     page_icon="🌿",
@@ -20,14 +21,23 @@ header {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
-# ----------------------------
+# -------------------------------------------------
 # OpenAI 연결
-# ----------------------------
+# -------------------------------------------------
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-# ----------------------------
-# 브랜드 CSS
-# ----------------------------
+# -------------------------------------------------
+# DB 로드
+# -------------------------------------------------
+@st.cache_data
+def load_db():
+    return pd.read_csv("minister_DB.csv")
+
+db = load_db()
+
+# -------------------------------------------------
+# 스타일
+# -------------------------------------------------
 st.markdown("""
 <style>
 
@@ -70,15 +80,15 @@ textarea {
 </style>
 """, unsafe_allow_html=True)
 
-# ----------------------------
+# -------------------------------------------------
 # 세션 상태
-# ----------------------------
+# -------------------------------------------------
 if "page" not in st.session_state:
     st.session_state.page = "main"
 
-# ----------------------------
-# 왼쪽 버튼형 메뉴 복구
-# ----------------------------
+# -------------------------------------------------
+# 사이드바 버튼 메뉴
+# -------------------------------------------------
 with st.sidebar:
     st.markdown("## 🌿 Minister AI")
     st.markdown("---")
@@ -95,10 +105,13 @@ with st.sidebar:
     if st.button("📊 관리자 통계", use_container_width=True):
         st.session_state.page = "admin"
 
-# ----------------------------
-# 페이지 분기 복구
-# ----------------------------
+# -------------------------------------------------
+# 페이지 분기
+# -------------------------------------------------
 
+# ===========================
+# MAIN
+# ===========================
 if st.session_state.page == "main":
 
     st.markdown("<h1 class='gold'>MINISTER AI</h1>", unsafe_allow_html=True)
@@ -124,12 +137,12 @@ if st.session_state.page == "main":
 
                 prompt = f"""
                 당신은 한국교회 행사 기획을 돕는 전문가입니다.
-                아래 행사 내용에 맞는 강사 유형과 추천 방향을 제시해주세요.
+                아래 행사 내용에 맞는 강사 유형과 설교 방향을 제시해주세요.
 
                 행사 내용:
                 {event}
 
-                다음 형식으로 답변해주세요:
+                형식:
                 1. 추천 강사 유형
                 2. 추천 설교 스타일
                 3. 기대 효과
@@ -146,21 +159,67 @@ if st.session_state.page == "main":
 
                 result = response.choices[0].message.content
 
-                st.markdown("### 🔎 AI 추천 결과")
+                st.markdown("### 🔎 AI 전략 추천")
                 st.write(result)
 
+                # --------------------------
+                # 🔥 DB 자동 매칭 로직
+                # --------------------------
+                st.markdown("### 📋 사역자 DB 매칭 결과")
+
+                keywords = ["말씀", "부흥", "청년", "선교", "치유"]
+
+                matched = db.copy()
+
+                for word in keywords:
+                    if word in event:
+                        matched = matched[matched["사역유형"].str.contains(word, na=False)]
+
+                if len(matched) == 0:
+                    st.info("조건에 정확히 맞는 사역자가 없습니다. 전체 목록 일부를 표시합니다.")
+                    st.dataframe(db.head(5))
+                else:
+                    st.dataframe(matched.head(5))
+
+# ===========================
+# 플랫폼 소개
+# ===========================
 elif st.session_state.page == "platform":
 
     st.markdown("<h2 class='gold'>플랫폼 소개</h2>", unsafe_allow_html=True)
-    st.write("Minister AI는 교회의 기도와 분별을 돕기 위해 만들어졌습니다.")
 
+    st.write("""
+    Minister AI는 교회의 기도와 분별을 돕기 위해 만들어졌습니다.
+    
+    ✔ AI 전략 추천  
+    ✔ 사역자 DB 기반 매칭  
+    ✔ 행사 기획 보조  
+    ✔ 사역자 존중 구조
+    """)
+
+# ===========================
+# 브랜드 스토리
+# ===========================
 elif st.session_state.page == "brand":
 
     st.markdown("<h2 class='gold'>브랜드 스토리</h2>", unsafe_allow_html=True)
-    st.write("우리는 연결을 거래하지 않습니다.")
-    st.write("기도의 결정을 대신하지 않습니다.")
 
+    st.write("""
+    우리는 연결을 거래하지 않습니다.
+    기도의 결정을 대신하지 않습니다.
+    사역자를 순위로 세우지 않습니다.
+    
+    Minister AI는 분별을 돕는 도구입니다.
+    """)
+
+# ===========================
+# 관리자 통계
+# ===========================
 elif st.session_state.page == "admin":
 
     st.markdown("<h2 class='gold'>관리자 통계</h2>", unsafe_allow_html=True)
-    st.info("관리자 전용 영역입니다.")
+
+    st.metric("총 등록 사역자 수", len(db))
+
+    st.markdown("### 지역별 분포")
+    st.bar_chart(db["지역"].value_counts())
