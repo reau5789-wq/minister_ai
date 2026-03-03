@@ -79,18 +79,6 @@ with st.sidebar:
     if st.button("🏠 Main", use_container_width=True):
         st.session_state.page = "main"
 
-    if st.button("📖 플랫폼 소개", use_container_width=True):
-        st.session_state.page = "platform"
-
-    if st.button("✨ 브랜드 스토리", use_container_width=True):
-        st.session_state.page = "brand"
-
-    if st.button("📊 관리자", use_container_width=True):
-        st.session_state.page = "admin"
-
-    if st.button("📢 프리젠테이션 모드", use_container_width=True):
-        st.session_state.page = "presentation"
-
 # -----------------------------
 # MAIN
 # -----------------------------
@@ -100,7 +88,31 @@ if st.session_state.page == "main":
     st.markdown("<div class='subtitle'>교회 사역 매칭 & 행사 기획 플랫폼</div>", unsafe_allow_html=True)
     st.divider()
 
-    st.info("Free 모드 (상위 3명 추천)")
+    # 로그인 영역 (선택형)
+    with st.expander("🔐 로그인 (선택)"):
+        email = st.text_input("이메일")
+
+        if st.button("로그인"):
+            if email:
+                st.session_state.logged_in = True
+                st.session_state.user_email = email
+                st.success("로그인 완료")
+            else:
+                st.warning("이메일 입력")
+
+    # 로그인 상태 표시
+    if st.session_state.logged_in:
+        st.success(f"현재 로그인: {st.session_state.user_email}")
+
+    # 프리미엄 판단
+    is_premium = False
+    if st.session_state.logged_in:
+        is_premium = "premium" in st.session_state.user_email.lower()
+
+    if is_premium:
+        st.success("⭐ 프리미엄 사용자 모드 (10명 추천 + 연락처 공개)")
+    else:
+        st.info("Free 모드 (상위 3명 추천 / 연락처 비공개)")
 
     st.subheader("행사 내용을 입력하세요")
     event = st.text_area("")
@@ -127,7 +139,8 @@ if st.session_state.page == "main":
 
             st.markdown("## 📋 추천 사역자")
 
-            matched = db.head(3)
+            limit = 10 if is_premium else 3
+            matched = db.head(limit)
 
             for idx, row in matched.iterrows():
 
@@ -145,14 +158,15 @@ if st.session_state.page == "main":
                 with col2:
                     if st.button("상세보기", key=f"detail_{idx}"):
 
-                        # 토글 구조
                         if st.session_state.open_detail == idx:
                             st.session_state.open_detail = None
                         else:
                             st.session_state.open_detail = idx
 
-                # 상세 표시
                 if st.session_state.open_detail == idx:
+
+                    phone_info = row['연락처'] if is_premium else "🔒 프리미엄 사용자만 열람 가능"
+
                     st.markdown(f"""
                     <div class="card">
                     <h4>📖 상세 프로필</h4>
@@ -160,21 +174,6 @@ if st.session_state.page == "main":
                     사역유형: {row['사역유형']}<br>
                     지역: {row['지역']}<br>
                     설교스타일: {row['설교스타일']}<br>
-                    연락처: {row['연락처']}
+                    연락처: {phone_info}
                     </div>
                     """, unsafe_allow_html=True)
-
-# -----------------------------
-# 기타 페이지
-# -----------------------------
-elif st.session_state.page == "platform":
-    st.write("플랫폼 소개")
-
-elif st.session_state.page == "brand":
-    st.write("브랜드 스토리")
-
-elif st.session_state.page == "admin":
-    st.write("관리자 페이지")
-
-elif st.session_state.page == "presentation":
-    st.write("프리젠테이션 모드")
