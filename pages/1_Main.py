@@ -9,7 +9,6 @@ st.set_page_config(layout="wide")
 # ============================
 # 🎨 상단 로고
 # ============================
-st.image("logo.png", width=200)
 st.markdown("""
 <div style='text-align:center; padding:20px;'>
     <h1 style='color:#D4AF37; font-size:42px;'>MINISTER AI</h1>
