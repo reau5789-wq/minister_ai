@@ -38,10 +38,10 @@ def save_log(email, event_text, feature_type):
         updated = new_data
 
     updated.to_csv(log_file, index=False)
-st.image("logo.png", width=200)
 # ==============================
 # 로그인
 # ==============================
+st.image("logo.png", width=100)
 st.title("🙏 Minister AI 4.0")
 
 if not st.session_state.logged_in:
@@ -146,5 +146,6 @@ if st.session_state.logged_in:
 
 else:
     st.info("로그인 후 사용 가능합니다.")
+
 
 
