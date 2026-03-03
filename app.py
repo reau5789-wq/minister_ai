@@ -4,167 +4,74 @@ st.set_page_config(
     page_title="Minister AI",
     page_icon="🌿",
     layout="wide",
-    initial_sidebar_state="collapsed"  # 🔥 사이드바 기본 숨김
+    initial_sidebar_state="collapsed"
 )
 
-# 기본 Streamlit 메뉴 숨김
-hide_streamlit_style = """
+# 기본 메뉴 숨김
+st.markdown("""
 <style>
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
 header {visibility: hidden;}
 </style>
-"""
-st.markdown(hide_streamlit_style, unsafe_allow_html=True)
-import streamlit as st
-import pandas as pd
-from openai import OpenAI
-from datetime import datetime
-import os
+""", unsafe_allow_html=True)
 
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+# -------------------------
+# 세션 상태
+# -------------------------
+if "page" not in st.session_state:
+    st.session_state.page = "main"
 
-st.set_page_config(page_title="Minister AI 4.0", page_icon="🙏", layout="wide")
+# -------------------------
+# 커스텀 사이드 메뉴
+# -------------------------
+with st.sidebar:
+    st.markdown("## 🌿 Minister AI")
 
-# ==============================
-# 세션 초기화
-# ==============================
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
-if "user_email" not in st.session_state:
-    st.session_state.user_email = ""
-if "is_premium" not in st.session_state:
-    st.session_state.is_premium = False
+    if st.button("🏠 Main", use_container_width=True):
+        st.session_state.page = "main"
 
-# ==============================
-# 로그 저장 함수
-# ==============================
-def save_log(email, event_text, feature_type):
-    log_file = "usage_log.csv"
+    if st.button("📖 플랫폼 소개", use_container_width=True):
+        st.session_state.page = "platform"
 
-    new_data = pd.DataFrame([{
-        "email": email,
-        "event_text": event_text,
-        "feature": feature_type,
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    }])
+    if st.button("✨ 브랜드 스토리", use_container_width=True):
+        st.session_state.page = "brand"
 
-    if os.path.exists(log_file):
-        old_data = pd.read_csv(log_file)
-        updated = pd.concat([old_data, new_data], ignore_index=True)
-    else:
-        updated = new_data
+    if st.button("📊 관리자 통계", use_container_width=True):
+        st.session_state.page = "admin"
 
-    updated.to_csv(log_file, index=False)
-# ==============================
-# 로그인
-# ==============================
-st.title("🙏 Minister AI 4.0")
+# -------------------------
+# 페이지 렌더링
+# -------------------------
 
-if not st.session_state.logged_in:
+if st.session_state.page == "main":
 
-    email = st.text_input("이메일 로그인")
-
-    if st.button("로그인"):
-        if email.strip() != "":
-            st.session_state.logged_in = True
-            st.session_state.user_email = email
-
-            if email.endswith("@minister.ai"):
-                st.session_state.is_premium = True
-
-            st.rerun()
-
-else:
-    st.success(f"로그인됨: {st.session_state.user_email}")
-
-    if st.button("로그아웃"):
-        st.session_state.logged_in = False
-        st.session_state.is_premium = False
-        st.rerun()
-
-st.divider()
-
-df = pd.read_csv("minister_DB.csv")
-
-user_input = st.text_area("행사 내용 입력")
-
-# ==============================
-# 기본 추천
-# ==============================
-if st.session_state.logged_in:
-
-    if st.button("🔎 강사 추천"):
-        if user_input.strip() != "":
-            with st.spinner("분석 중..."):
-
-                prompt = f"""
-                행사 내용: {user_input}
-
-                아래 강사 목록 중 가장 적합한 3명을 추천하세요.
-
-                {df.to_string(index=False)}
-                """
-
-                response = client.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=[
-                        {"role": "system", "content": "교회 행사 강사 매칭 전문가"},
-                        {"role": "user", "content": prompt}
-                    ],
-                    temperature=0.7
-                )
-
-                result = response.choices[0].message.content
-
-            st.info(result)
-
-            # 🔥 로그 저장
-            save_log(st.session_state.user_email, user_input, "강사추천")
+    st.markdown("""
+    <h1 style='color:#D4AF37;'>MINISTER AI</h1>
+    <h4 style='color:gray;'>교회 사역 매칭 & 행사 기획 플랫폼</h4>
+    """, unsafe_allow_html=True)
 
     st.divider()
 
-    # ==============================
-    # 프리미엄 기능
-    # ==============================
-    if st.button("✨ 행사 기획안 생성"):
-        if user_input.strip() != "":
-            with st.spinner("기획안 작성 중..."):
+    st.subheader("행사 내용을 입력하세요")
+    event = st.text_area("")
 
-                prompt = f"""
-                행사 내용: {user_input}
+    if st.button("AI 추천 받기"):
+        st.success("추천 기능은 다음 단계에서 연결됩니다.")
 
-                1. 행사 주제
-                2. 전체 흐름
-                3. 설교 방향
-                4. 찬양 구성
-                5. 홍보 문구
-                6. 기대 효과
-                """
+elif st.session_state.page == "platform":
 
-                response = client.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=[
-                        {"role": "system", "content": "교회 행사 기획 전문가"},
-                        {"role": "user", "content": prompt}
-                    ],
-                    temperature=0.8
-                )
+    st.title("플랫폼 소개")
+    st.write("Minister AI는 교회의 기도와 분별을 돕는 플랫폼입니다.")
 
-                premium_result = response.choices[0].message.content
+elif st.session_state.page == "brand":
 
-            if st.session_state.is_premium:
-                st.success(premium_result)
-                save_log(st.session_state.user_email, user_input, "기획안생성")
-            else:
-                st.warning("프리미엄 전용 기능입니다.")
-                preview = premium_result[:500]
-                st.info(preview)
+    st.title("브랜드 스토리")
+    st.write("우리는 연결을 거래하지 않습니다.")
+    st.write("기도의 결정을 대신하지 않습니다.")
+    st.write("사역을 돕는 도구가 되기를 원합니다.")
 
-else:
-    st.info("로그인 후 사용 가능합니다.")
+elif st.session_state.page == "admin":
 
-
-
-
-
+    st.title("관리자 통계")
+    st.info("관리자 전용 기능 영역입니다.")
