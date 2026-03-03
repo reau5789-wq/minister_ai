@@ -132,18 +132,19 @@ if st.session_state.page == "main":
     st.divider()
 
     # 로그인
-    if not st.session_state.logged_in:
-        st.subheader("🔐 로그인")
-        email = st.text_input("이메일")
+if not st.session_state.logged_in:
+    st.subheader("🔐 로그인")
+    email = st.text_input("이메일")
 
-        if st.button("로그인"):
-            if email:
-                st.session_state.logged_in = True
-                st.session_state.user_email = email
-                st.success("로그인 완료")
-            else:
-                st.warning("이메일 입력")
-        st.stop()
+    if st.button("로그인"):
+        if email:
+            st.session_state.logged_in = True
+            st.session_state.user_email = email
+            st.success("로그인 완료")
+            st.rerun()
+        else:
+            st.warning("이메일 입력")
+    st.stop()
 
     is_premium = "premium" in st.session_state.user_email.lower()
 
@@ -304,3 +305,4 @@ elif st.session_state.page == "presentation":
 Minister AI는 한국교회와 사역자를 연결하는
 공정하고 신뢰 가능한 플랫폼이 되는 것을 목표로 합니다.
 """)
+
