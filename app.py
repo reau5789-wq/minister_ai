@@ -1,23 +1,33 @@
 import streamlit as st
 from openai import OpenAI
 
-# --------------------------------------------------
+# ----------------------------
 # 기본 설정
-# --------------------------------------------------
+# ----------------------------
 st.set_page_config(
     page_title="Minister AI",
     page_icon="🌿",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
 
-# --------------------------------------------------
+# 기본 메뉴 숨김
+st.markdown("""
+<style>
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+header {visibility: hidden;}
+</style>
+""", unsafe_allow_html=True)
+
+# ----------------------------
 # OpenAI 연결
-# --------------------------------------------------
+# ----------------------------
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-# --------------------------------------------------
-# 브랜드 CSS
-# --------------------------------------------------
+# ----------------------------
+# 브랜드 스타일
+# ----------------------------
 st.markdown("""
 <style>
 
@@ -25,30 +35,24 @@ body {
     background-color: #0E1117;
 }
 
-[data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #0B132B 0%, #111827 100%);
-}
-
 h1 {
-    font-weight: 700;
-}
-
-.gold {
     color: #D4AF37;
+    font-weight: 800;
+    font-size: 56px;
 }
 
 .subtitle {
     color: #9CA3AF;
-    font-size: 18px;
+    font-size: 20px;
 }
 
 .stButton>button {
     background-color: #D4AF37;
     color: black;
     font-weight: bold;
-    border-radius: 12px;
-    padding: 14px 20px;
-    font-size: 16px;
+    border-radius: 14px;
+    padding: 16px 20px;
+    font-size: 18px;
 }
 
 .stButton>button:hover {
@@ -57,41 +61,36 @@ h1 {
 }
 
 textarea {
-    border-radius: 12px !important;
+    border-radius: 14px !important;
     border: 1px solid #2D3748 !important;
 }
 
 </style>
 """, unsafe_allow_html=True)
 
-# --------------------------------------------------
-# 사이드바 (단순 브랜드 표시용)
-# --------------------------------------------------
-with st.sidebar:
-    st.markdown("## 🌿 Minister AI")
-    st.markdown("---")
-    st.markdown("교회 사역 매칭 & 행사 기획 플랫폼")
-
-# --------------------------------------------------
+# ----------------------------
 # 메인 화면
-# --------------------------------------------------
-st.markdown("<h1 class='gold'>MINISTER AI</h1>", unsafe_allow_html=True)
+# ----------------------------
+
+st.markdown("<h1>MINISTER AI</h1>", unsafe_allow_html=True)
 st.markdown("<div class='subtitle'>교회 사역 매칭 & 행사 기획 플랫폼</div>", unsafe_allow_html=True)
 
 st.divider()
 
-st.subheader("행사 내용을 입력하세요")
+st.markdown("### 행사 내용을 입력하세요")
 
 event = st.text_area(
     "",
-    placeholder="예: 창립 30주년 기념 부흥회, 서울 지역, 말씀 중심"
+    placeholder="예: 창립 30주년 기념 부흥회, 서울 지역, 말씀 중심",
+    height=150
 )
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# --------------------------------------------------
+# ----------------------------
 # AI 추천 기능
-# --------------------------------------------------
+# ----------------------------
+
 if st.button("AI 추천 받기", use_container_width=True):
 
     if event.strip() == "":
