@@ -4,21 +4,16 @@ from openai import OpenAI
 from datetime import datetime
 import os
 
-# -------------------------------------------------
+# -----------------------------
 # 기본 설정
-# -------------------------------------------------
-st.set_page_config(
-    page_title="Minister AI",
-    page_icon="🌿",
-    layout="wide"
-)
+# -----------------------------
+st.set_page_config(page_title="Minister AI", page_icon="🌿", layout="wide")
 
 st.markdown("""
 <style>
 #MainMenu {visibility:hidden;}
 footer {visibility:hidden;}
 header {visibility:hidden;}
-
 body {background-color:#0E1117;}
 
 [data-testid="stSidebar"] {
@@ -32,27 +27,22 @@ body {background-color:#0E1117;}
     background-color:#D4AF37;
     color:black;
     font-weight:bold;
-    border-radius:12px;
-    padding:12px;
-}
-
-.stButton>button:hover {
-    background-color:#b8932f;
-    color:white;
+    border-radius:10px;
+    padding:10px;
 }
 
 .card {
     background:#1F2937;
     padding:20px;
     border-radius:12px;
-    margin-bottom:15px;
+    margin-bottom:10px;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# -------------------------------------------------
-# 세션 상태
-# -------------------------------------------------
+# -----------------------------
+# 세션 초기화
+# -----------------------------
 if "page" not in st.session_state:
     st.session_state.page = "main"
 
@@ -62,41 +52,26 @@ if "logged_in" not in st.session_state:
 if "user_email" not in st.session_state:
     st.session_state.user_email = ""
 
-# -------------------------------------------------
-# OpenAI 연결
-# -------------------------------------------------
+if "open_detail" not in st.session_state:
+    st.session_state.open_detail = None
+
+# -----------------------------
+# OpenAI
+# -----------------------------
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-# -------------------------------------------------
-# DB 로드
-# -------------------------------------------------
+# -----------------------------
+# DB
+# -----------------------------
 @st.cache_data
 def load_db():
     return pd.read_csv("minister_DB.csv")
 
 db = load_db()
 
-# -------------------------------------------------
-# 추천 기록 저장
-# -------------------------------------------------
-def save_history(email, event):
-    file_name = "recommend_history.csv"
-    new_data = pd.DataFrame([{
-        "email": email,
-        "event": event,
-        "date": datetime.now().strftime("%Y-%m-%d %H:%M")
-    }])
-
-    if os.path.exists(file_name):
-        old = pd.read_csv(file_name)
-        updated = pd.concat([old, new_data], ignore_index=True)
-        updated.to_csv(file_name, index=False)
-    else:
-        new_data.to_csv(file_name, index=False)
-
-# -------------------------------------------------
+# -----------------------------
 # 사이드바
-# -------------------------------------------------
+# -----------------------------
 with st.sidebar:
     st.markdown("## 🌿 Minister AI")
     st.markdown("---")
@@ -116,38 +91,16 @@ with st.sidebar:
     if st.button("📢 프리젠테이션 모드", use_container_width=True):
         st.session_state.page = "presentation"
 
-# -------------------------------------------------
-# MAIN 페이지
-# -------------------------------------------------
+# -----------------------------
+# MAIN
+# -----------------------------
 if st.session_state.page == "main":
 
     st.markdown("<h1 class='gold'>MINISTER AI</h1>", unsafe_allow_html=True)
     st.markdown("<div class='subtitle'>교회 사역 매칭 & 행사 기획 플랫폼</div>", unsafe_allow_html=True)
     st.divider()
 
-    # 로그인 (선택)
-    with st.expander("🔐 로그인 (선택)"):
-        email = st.text_input("이메일")
-
-        if st.button("로그인"):
-            if email:
-                st.session_state.logged_in = True
-                st.session_state.user_email = email
-                st.success("로그인 완료")
-            else:
-                st.warning("이메일 입력")
-
-    if st.session_state.logged_in:
-        st.success(f"현재 로그인: {st.session_state.user_email}")
-
-    is_premium = False
-    if st.session_state.logged_in:
-        is_premium = "premium" in st.session_state.user_email.lower()
-
-    if is_premium:
-        st.success("⭐ 프리미엄 사용자 모드")
-    else:
-        st.info("Free 모드 (상위 3명 추천)")
+    st.info("Free 모드 (상위 3명 추천)")
 
     st.subheader("행사 내용을 입력하세요")
     event = st.text_area("")
@@ -155,95 +108,73 @@ if st.session_state.page == "main":
     if st.button("AI 추천 받기", use_container_width=True):
 
         if not event.strip():
-            st.warning("행사 내용 입력")
+            st.warning("행사 내용을 입력하세요.")
         else:
 
-            if st.session_state.logged_in:
-                save_history(st.session_state.user_email, event)
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role":"system","content":"신학적으로 균형잡힌 한국교회 전문가"},
+                    {"role":"user","content":event}
+                ],
+                temperature=0.7
+            )
 
-            with st.spinner("추천 생성 중..."):
+            result = response.choices[0].message.content
 
-                response = client.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=[
-                        {"role":"system","content":"신학적으로 균형잡힌 한국교회 전문가"},
-                        {"role":"user","content":event}
-                    ],
-                    temperature=0.7
-                )
+            st.markdown("## 🔎 AI 전략 추천")
+            st.write(result)
 
-                result = response.choices[0].message.content
+            st.markdown("## 📋 추천 사역자")
 
-                st.markdown("## 🔎 AI 전략 추천")
-                st.write(result)
+            matched = db.head(3)
 
-                st.markdown("## 📋 추천 사역자")
+            for idx, row in matched.iterrows():
 
-                limit = 10 if is_premium else 3
-                matched = db.head(limit)
+                col1, col2 = st.columns([4,1])
 
-                for idx, row in matched.iterrows():
+                with col1:
+                    st.markdown(f"""
+                    <div class="card">
+                        <b>{row['이름']}</b><br>
+                        사역유형: {row['사역유형']}<br>
+                        지역: {row['지역']}
+                    </div>
+                    """, unsafe_allow_html=True)
 
-                    with st.container():
+                with col2:
+                    if st.button("상세보기", key=f"detail_{idx}"):
 
-                        col1, col2 = st.columns([4,1])
+                        # 토글 구조
+                        if st.session_state.open_detail == idx:
+                            st.session_state.open_detail = None
+                        else:
+                            st.session_state.open_detail = idx
 
-                        with col1:
-                            st.markdown(f"""
-                            <div class="card">
-                                <b>{row['이름']}</b><br>
-                                사역유형: {row['사역유형']}<br>
-                                지역: {row['지역']}
-                            </div>
-                            """, unsafe_allow_html=True)
+                # 상세 표시
+                if st.session_state.open_detail == idx:
+                    st.markdown(f"""
+                    <div class="card">
+                    <h4>📖 상세 프로필</h4>
+                    이름: {row['이름']}<br>
+                    사역유형: {row['사역유형']}<br>
+                    지역: {row['지역']}<br>
+                    설교스타일: {row['설교스타일']}<br>
+                    연락처: {row['연락처']}
+                    </div>
+                    """, unsafe_allow_html=True)
 
-                        with col2:
-                            if st.button("상세보기", key=f"detail_{idx}"):
-
-                                st.markdown(f"""
-                                <div class="card">
-                                <h4>📖 상세 프로필</h4>
-                                이름: {row['이름']}<br>
-                                사역유형: {row['사역유형']}<br>
-                                지역: {row['지역']}<br>
-                                설교스타일: {row['설교스타일']}<br>
-                                연락처: {row['연락처']}
-                                </div>
-                                """, unsafe_allow_html=True)
-
-# -------------------------------------------------
-# 플랫폼 소개
-# -------------------------------------------------
+# -----------------------------
+# 기타 페이지
+# -----------------------------
 elif st.session_state.page == "platform":
-    st.markdown("<h2 class='gold'>플랫폼 소개</h2>", unsafe_allow_html=True)
-    st.write("Minister AI는 교회의 분별을 돕는 도구입니다.")
+    st.write("플랫폼 소개")
 
-# -------------------------------------------------
-# 브랜드 스토리
-# -------------------------------------------------
 elif st.session_state.page == "brand":
-    st.markdown("<h2 class='gold'>브랜드 스토리</h2>", unsafe_allow_html=True)
-    st.write("하나님은 시대마다 새로운 도구를 허락하십니다.")
+    st.write("브랜드 스토리")
 
-# -------------------------------------------------
-# 관리자
-# -------------------------------------------------
 elif st.session_state.page == "admin":
-    st.markdown("<h2 class='gold'>관리자 통계</h2>", unsafe_allow_html=True)
-    st.metric("총 사역자 수", len(db))
+    st.write("관리자 페이지")
 
-# -------------------------------------------------
-# 프리젠테이션
-# -------------------------------------------------
 elif st.session_state.page == "presentation":
-
-    st.markdown("<h1 class='gold'>Minister AI 4.0</h1>", unsafe_allow_html=True)
-    st.markdown("### 한국교회 사역 매칭 플랫폼")
-    st.divider()
-
-    st.markdown("## 🎯 왜 필요한가?")
-    st.write("""
-• 교회는 적합한 강사를 찾기 어렵습니다.  
-• 사역자는 자신을 소개할 기회가 제한적입니다.  
-• 연결은 비공식적 네트워크에 의존합니다.
-""")
+    st.write("프리젠테이션 모드")
