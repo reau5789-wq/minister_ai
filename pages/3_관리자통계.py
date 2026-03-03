@@ -6,6 +6,30 @@ st.set_page_config(page_title="관리자 통계", page_icon="📊")
 
 st.title("📊 Minister AI 관리자 통계")
 
+# ==============================
+# 🔐 관리자 이메일 설정
+# ==============================
+admin_emails = [
+    "reau5789@gmail.com",
+    "admin@minister.ai"
+]
+
+# ==============================
+# 🔐 로그인 확인
+# ==============================
+if "logged_in" not in st.session_state or not st.session_state.logged_in:
+    st.warning("로그인 후 접근 가능합니다.")
+    st.stop()
+
+if st.session_state.user_email not in admin_emails:
+    st.error("관리자 전용 페이지입니다.")
+    st.stop()
+
+st.success("관리자 인증 완료")
+
+# ==============================
+# 📂 로그 파일 확인
+# ==============================
 log_file = "usage_log.csv"
 
 if not os.path.exists(log_file):
@@ -20,7 +44,7 @@ st.dataframe(df, use_container_width=True)
 st.divider()
 
 # ==============================
-# 📊 통계 1 — 기능별 사용 횟수
+# 📊 기능별 사용 횟수
 # ==============================
 st.subheader("📌 기능별 사용 횟수")
 
@@ -30,7 +54,7 @@ st.bar_chart(feature_count)
 st.divider()
 
 # ==============================
-# 📊 통계 2 — 사용자별 사용 횟수
+# 📊 사용자별 사용 횟수
 # ==============================
 st.subheader("👤 사용자별 사용 횟수")
 
@@ -40,7 +64,7 @@ st.bar_chart(user_count)
 st.divider()
 
 # ==============================
-# 📊 통계 3 — 날짜별 사용 추이
+# 📊 날짜별 사용 추이
 # ==============================
 st.subheader("📅 날짜별 사용 추이")
 
